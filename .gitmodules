@@ -1,0 +1,3 @@
+[submodule "example_two/ai-chatbot"]
+	path = example_two/ai-chatbot
+	url = https://github.com/vercel/ai-chatbot.git
