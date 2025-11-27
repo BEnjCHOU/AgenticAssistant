@@ -5,10 +5,25 @@ import asyncio
 import os
 
 # Create a RAG tool using LlamaIndex
-documents = SimpleDirectoryReader("data").load_data()
-index = VectorStoreIndex.from_documents(documents)
-query_engine = index.as_query_engine()
 
+def load_index() -> VectorStoreIndex:
+    if os.path.exists("storage"):
+        from llama_index.core import StorageContext, load_index_from_storage
+        # load the index from disk
+        print("loading index from storage folder")
+        storage_context = StorageContext.from_defaults(persist_dir="storage")
+        index = load_index_from_storage(storage_context)
+        return index
+    else:
+        print("data folder used to load documents and create index")
+        documents = SimpleDirectoryReader("data").load_data()
+        index = VectorStoreIndex.from_documents(documents)
+        save_index_to_disk(index, persist_dir="storage")
+        return index
+
+def save_index_to_disk(index, persist_dir="storage"):
+    """Saves the index to disk for persistence."""
+    index.storage_context.persist(persist_dir)
 
 def multiply(a: float, b: float) -> float:
     """Useful for multiplying two numbers."""
@@ -17,6 +32,8 @@ def multiply(a: float, b: float) -> float:
 
 async def search_documents(query: str) -> str:
     """Useful for answering natural language questions about essays"""
+    index = load_index()
+    query_engine = index.as_query_engine()
     response = await query_engine.aquery(query)
     return str(response)
 
