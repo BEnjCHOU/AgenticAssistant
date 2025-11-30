@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 import shutil
@@ -8,6 +9,19 @@ app = FastAPI()
 # Define request/response models
 class Request(BaseModel):
     message: str
+
+# 1. Global Variable for Agent
+# This will be initialized BEFORE the API starts accepting requests
+agent_instance: AgentDocument = None
+
+# 2. Startup Event Handler
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global agent_instance
+    agent_instance = AgentDocument()
+    yield
+    # Any cleanup can be done here if necessary
+
 # post question
 @app.post("/ask/")
 async def ask_question(request: Request):

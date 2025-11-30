@@ -5,8 +5,6 @@ In this example we've extended the [example three](../example_three/README.md) w
 
 We currently don't have any database to store the [document_id](https://developers.llamaindex.ai/python/framework/module_guides/loading/documents_and_nodes). For this reason, to locate which document and file to be deleted we search through the docstore.json to locate the document_id. But a better approach will be to store the id when creating the document. We will be doing this in the next example using [postgreSQL pgvector](https://github.com/pgvector/pgvector).
 
-The current agent loads vector into memory everytime an api call is executed which is not a good practice, we can further use framework like [Redis](https://redis.io/) to fix this issue.
-
 In a real life scenario we might use a chatbot that remembers previous questions asked, let's implement that in the next example.
 
 ### Working Environment
