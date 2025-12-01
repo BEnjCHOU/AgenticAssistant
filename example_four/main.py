@@ -3,8 +3,7 @@ from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 import shutil
 from agent import AgentDocument
-
-app = FastAPI()
+from pathlib import Path
 
 # Define request/response models
 class Request(BaseModel):
@@ -22,6 +21,8 @@ async def lifespan(app: FastAPI):
     yield
     # Any cleanup can be done here if necessary
 
+app = FastAPI(lifespan=lifespan)
+
 # post question
 @app.post("/ask/")
 async def ask_question(request: Request):
@@ -38,7 +39,8 @@ async def ask_question(request: Request):
 async def upload_file(file: UploadFile = File(...)):
     """Upload and save a file to the uploads directory"""
     try:
-        uploadpath = "data"
+        uploadpath = Path("data")
+        uploadpath.mkdir(parents=True, exist_ok=True)
         file_path = uploadpath / file.filename
         
         # Save the file
@@ -62,7 +64,8 @@ async def upload_file(file: UploadFile = File(...)):
 async def update_file(file: UploadFile = File(...)):
     """Update an existing file in the uploads directory"""
     try:
-        uploadpath = "data"
+        uploadpath = Path("data")
+        uploadpath.mkdir(parents=True, exist_ok=True)
         file_path = uploadpath / file.filename
         
         # Save the updated file
@@ -86,7 +89,8 @@ async def update_file(file: UploadFile = File(...)):
 async def list_files():
     """List all files in the data directory"""
     try:
-        uploadpath = "data"
+        uploadpath = Path("data")
+        uploadpath.mkdir(parents=True, exist_ok=True)
         # for object in path, if it is a file, add file name to files
         files = [f.name for f in uploadpath.iterdir() if f.is_file()]
         return {"files": files}
@@ -107,28 +111,28 @@ async def delete_file(filename: str):
 # find context from agent
 # delete context from agent
 # Health check endpoint
-@app.get("/")
-async def root():
-    return {"message": "Welcome to FastAPI"}
+# @app.get("/")
+# async def root():
+#     return {"message": "Welcome to FastAPI"}
 
-# GET endpoint
-@app.get("/items/{item_id}")
-async def get_item(item_id: int):
-    return {"item_id": item_id, "name": "Sample Item"}
+# # GET endpoint
+# @app.get("/items/{item_id}")
+# async def get_item(item_id: int):
+#     return {"item_id": item_id, "name": "Sample Item"}
 
-# POST endpoint
-@app.post("/items/")
-async def create_item(item: Item):
-    return {"created": item, "status": "success"}
+# # POST endpoint
+# @app.post("/items/")
+# async def create_item(item: Item):
+#     return {"created": item, "status": "success"}
 
-# PUT endpoint
-@app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Item):
-    return {"item_id": item_id, "updated": item}
+# # PUT endpoint
+# @app.put("/items/{item_id}")
+# async def update_item(item_id: int, item: Item):
+#     return {"item_id": item_id, "updated": item}
 
-# DELETE endpoint
-@app.delete("/items/{item_id}")
-async def delete_item(item_id: int):
-    return {"deleted": item_id, "status": "success"}
+# # DELETE endpoint
+# @app.delete("/items/{item_id}")
+# async def delete_item(item_id: int):
+#     return {"deleted": item_id, "status": "success"}
 
 # Run with: uvicorn main:app --reload
