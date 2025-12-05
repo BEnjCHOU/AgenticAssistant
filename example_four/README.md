@@ -35,3 +35,9 @@ python3 -m pip install -r requirements.txt
 ```
 uvicorn main:app --reload
 ```
+
+### testing the code
+```
+cd example_four/
+pytest
+```
