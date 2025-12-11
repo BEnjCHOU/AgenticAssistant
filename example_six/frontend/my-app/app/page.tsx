@@ -1,14 +1,30 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Upload, FileText, Bot, User, Trash2 } from 'lucide-react';
+import { Send, Upload, FileText, Bot, User, Trash2, Settings, BarChart3 } from 'lucide-react';
 import axios, { AxiosError } from 'axios';
 
 // --- Types ---
 interface Message {
   role: 'user' | 'agent';
   content: string;
+  evaluation?: {
+    overall_quality_score: number;
+    relevance: {
+      relevance_score: number;
+      explanation: string;
+      key_points: string[];
+    };
+    completeness: {
+      completeness_score: number;
+      explanation: string;
+      missing_aspects: string[];
+    };
+    recommendation: string;
+  };
 }
+
+type TaskType = 'default' | 'document_analysis' | 'research' | 'calculation' | 'general';
 
 export default function ChatAgent() {
   const [messages, setMessages] = useState<Message[]>([
@@ -21,6 +37,9 @@ export default function ChatAgent() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatingFileName, setUpdatingFileName] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [taskType, setTaskType] = useState<TaskType>('default');
+  const [evaluateContext, setEvaluateContext] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);        // for new uploads
@@ -62,9 +81,21 @@ export default function ChatAgent() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post(`${API_URL}/ask/`, { message: userMessage });
+      const res = await axios.post(`${API_URL}/ask/`, { 
+        message: userMessage,
+        task_type: taskType,
+        evaluate_context: evaluateContext
+      });
+      console.log(res.data);
       const agentResponse = res.data.response || "No response received.";
-      setMessages(prev => [...prev, { role: 'agent', content: agentResponse }]);
+      const message: Message = { 
+        role: 'agent', 
+        content: agentResponse 
+      };
+      if (res.data.evaluation) {
+        message.evaluation = res.data.evaluation;
+      }
+      setMessages(prev => [...prev, message]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'agent', content: "Error: Could not connect to the agent." }]);
     } finally {
@@ -284,16 +315,62 @@ export default function ChatAgent() {
 
       {/* --- Main Chat Area --- */}
       <div className="flex-1 flex flex-col">
-        {/* Header (Mobile only) */}
-        <div className="md:hidden p-4 bg-white border-b flex justify-between items-center">
+        {/* Header */}
+        <div className="p-4 bg-white border-b flex justify-between items-center">
           <span className="font-bold text-indigo-600">Agent Chat</span>
-          <button 
-             onClick={() => fileInputRef.current?.click()}
-             className="text-sm text-indigo-600 font-medium"
-          >
-            + Upload
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+              title="Settings"
+            >
+              <Settings size={20} />
+            </button>
+            <button 
+               onClick={() => fileInputRef.current?.click()}
+               className="text-sm text-indigo-600 font-medium md:hidden"
+            >
+              + Upload
+            </button>
+          </div>
         </div>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="p-4 bg-indigo-50 border-b border-indigo-100">
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Task Type
+                </label>
+                <select
+                  value={taskType}
+                  onChange={(e) => setTaskType(e.target.value as TaskType)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="default">Default - General purpose</option>
+                  <option value="document_analysis">Document Analysis - Analyze documents</option>
+                  <option value="research">Research - Multi-source research</option>
+                  <option value="calculation">Calculation - Mathematical tasks</option>
+                  <option value="general">General - All tools available</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="evaluateContext"
+                  checked={evaluateContext}
+                  onChange={(e) => setEvaluateContext(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <label htmlFor="evaluateContext" className="text-sm text-gray-700 flex items-center gap-2">
+                  <BarChart3 size={16} />
+                  Evaluate context quality
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -316,6 +393,85 @@ export default function ChatAgent() {
                  <p className="whitespace-pre-wrap leading-relaxed text-sm">
                    {msg.content}
                  </p>
+                 {msg.evaluation && (
+                   <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                     <div className="flex items-center gap-2 mb-2">
+                       <BarChart3 size={16} className="text-indigo-600" />
+                       <span className="text-xs font-semibold text-gray-700">Context Quality Evaluation</span>
+                     </div>
+                     
+                     {/* Overall Score */}
+                     <div className="bg-indigo-50 rounded-lg p-3">
+                       <div className="flex items-center justify-between mb-1">
+                         <span className="text-xs font-medium text-gray-700">Overall Quality</span>
+                         <span className="text-sm font-bold text-indigo-600">
+                           {(msg.evaluation.overall_quality_score * 100).toFixed(0)}%
+                         </span>
+                       </div>
+                       <div className="w-full bg-gray-200 rounded-full h-2">
+                         <div 
+                           className="bg-indigo-600 h-2 rounded-full transition-all"
+                           style={{ width: `${msg.evaluation.overall_quality_score * 100}%` }}
+                         />
+                       </div>
+                       <p className="text-xs text-gray-600 mt-1">{msg.evaluation.recommendation}</p>
+                     </div>
+
+                     {/* Relevance Score */}
+                     <div className="bg-green-50 rounded-lg p-3">
+                       <div className="flex items-center justify-between mb-1">
+                         <span className="text-xs font-medium text-gray-700">Relevance</span>
+                         <span className="text-sm font-bold text-green-600">
+                           {(msg.evaluation.relevance.relevance_score * 100).toFixed(0)}%
+                         </span>
+                       </div>
+                       <div className="w-full bg-gray-200 rounded-full h-2">
+                         <div 
+                           className="bg-green-600 h-2 rounded-full transition-all"
+                           style={{ width: `${msg.evaluation.relevance.relevance_score * 100}%` }}
+                         />
+                       </div>
+                       <p className="text-xs text-gray-600 mt-1">{msg.evaluation.relevance.explanation}</p>
+                       {msg.evaluation.relevance.key_points.length > 0 && (
+                         <div className="mt-2">
+                           <p className="text-xs font-medium text-gray-700 mb-1">Key Points:</p>
+                           <ul className="text-xs text-gray-600 list-disc list-inside space-y-0.5">
+                             {msg.evaluation.relevance.key_points.slice(0, 3).map((point, idx) => (
+                               <li key={idx}>{point}</li>
+                             ))}
+                           </ul>
+                         </div>
+                       )}
+                     </div>
+
+                     {/* Completeness Score */}
+                     <div className="bg-blue-50 rounded-lg p-3">
+                       <div className="flex items-center justify-between mb-1">
+                         <span className="text-xs font-medium text-gray-700">Completeness</span>
+                         <span className="text-sm font-bold text-blue-600">
+                           {(msg.evaluation.completeness.completeness_score * 100).toFixed(0)}%
+                         </span>
+                       </div>
+                       <div className="w-full bg-gray-200 rounded-full h-2">
+                         <div 
+                           className="bg-blue-600 h-2 rounded-full transition-all"
+                           style={{ width: `${msg.evaluation.completeness.completeness_score * 100}%` }}
+                         />
+                       </div>
+                       <p className="text-xs text-gray-600 mt-1">{msg.evaluation.completeness.explanation}</p>
+                       {msg.evaluation.completeness.missing_aspects.length > 0 && (
+                         <div className="mt-2">
+                           <p className="text-xs font-medium text-gray-700 mb-1">Missing Aspects:</p>
+                           <ul className="text-xs text-gray-600 list-disc list-inside space-y-0.5">
+                             {msg.evaluation.completeness.missing_aspects.slice(0, 3).map((aspect, idx) => (
+                               <li key={idx}>{aspect}</li>
+                             ))}
+                           </ul>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 )}
               </div>
             </div>
           ))}
@@ -348,8 +504,17 @@ export default function ChatAgent() {
               <Send size={20} />
             </button>
           </form>
-          <div className="text-center mt-2">
+          <div className="text-center mt-2 flex items-center justify-center gap-4">
              <p className="text-xs text-gray-400">Agent remembers context within this session.</p>
+             {taskType !== 'default' && (
+               <span className="text-xs text-indigo-600 font-medium">Mode: {taskType.replace('_', ' ')}</span>
+             )}
+             {evaluateContext && (
+               <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                 <BarChart3 size={12} />
+                 Evaluation ON
+               </span>
+             )}
           </div>
         </div>
       </div>

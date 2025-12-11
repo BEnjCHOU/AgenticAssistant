@@ -9,6 +9,8 @@ I've created this repository to get familiar with latest LLM models and their us
 3. [Example Three](example_three/README.md) - LlamaIndex RAG agent with python3.
 4. [Example Four](example_four/README.md) - A context summarization agent with fastapi.
 5. [Example Five](example_five/README.md) - let's add a UI and use PostgreSql pgvector to store data. (We can further use Oauth to sync like google drive data to search or get summary.)
-6. [Example Six](example_six/README.md) - (In progress)a multiagent workflow using Langchain.
-7. [Example Seven](example_seven/README.md) - (In progress)Tunning models for complex task
-8. [Example Eight](example_eight/README.md) - (In progress)Let's use guardrail to prevent exposing data to llm.
+6. [Example Six](example_dix/README.md) - Let's augment our agent capability with existing MCP servers, finetune our prompt for more specific tasks and evaluate the context returned from the agent.
+7. [Example Seven](example_six/README.md) - Let's wrap up our example_five and convert it to a MCP server.
+8. [Example Eight](example_seven/README.md) - (In progress) multi-modal agent workflow.
+9. [Example Nine](example_eight/README.md) - (In progress)Tunning models for complex task
+10. [Example Ten](example_nine/README.md) - (In progress)Let's use guardrail to prevent exposing data to llm.
